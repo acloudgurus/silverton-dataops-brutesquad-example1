@@ -37,10 +37,6 @@ jobs:
             pip install pytest coverage
           fi
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "::add-path::$HOME/.local/bin"
           
 
       - name: Run Shared Unit Test Action
