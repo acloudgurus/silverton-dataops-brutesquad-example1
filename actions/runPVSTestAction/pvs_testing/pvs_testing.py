@@ -124,15 +124,15 @@ def main():
     work_item_id = f"CHG{change_num}_CTASK{task_num}"
     logger.info(f"Work Item ID: {work_item_id}")
 
-    # Uncomment and adapt this block for actual Teradata connection when ready
-    # with teradatasql.connect(
-    #         host=teradata_host_server,
-    #         user=teradata_username,
-    #         password=teradata_password,
-    #         LOGMECH="LDAP",
-    #         encryptdata=True
-    # ) as td_conn:
-    #     _run_pvs_test(procs_clean, work_item_id, td_conn, teradata_username)
+    Uncomment and adapt this block for actual Teradata connection when ready
+    with teradatasql.connect(
+            host=teradata_host_server,
+            user=teradata_username,
+            password=teradata_password,
+            LOGMECH="LDAP",
+            encryptdata=True
+    ) as td_conn:
+        _run_pvs_test(procs_clean, work_item_id, td_conn, teradata_username)
 
 if __name__ == "__main__":
     main()
