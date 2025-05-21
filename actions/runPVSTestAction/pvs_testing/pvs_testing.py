@@ -46,7 +46,7 @@ def _extract_proc_names_from_file(filepath):
     with open(filepath, 'r') as f:
         file_content = f.read()
 
-    pattern = r'(?i)\b(create|replace|update)\s+(procedure\s+)?(\S+\$\{dbEnv\}\.\S+)'
+    pattern = r'(?i)\b(create|replace|update)\s+(procedure\s+)?(\S+\$\{dbEnv\}\.[^\(\s]+)'
     matches = re.findall(pattern, file_content)
 
     for match in matches:
