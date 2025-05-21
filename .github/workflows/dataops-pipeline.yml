@@ -97,7 +97,7 @@ jobs:
       - name: Find all ddl dml stored_proc full path dir under the src check out dir
         id: find-folders
         # switch to main before merge into main
-        uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/dynamic-uses@main
+        uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/dynamic-uses@master
         with:
           uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/findSqlFolderAction@${{ env.p_env }}
           with: '{ OPS_TYPE: ${{ inputs.OPS_TYPE }} }'
