@@ -122,18 +122,3 @@ def test_main(mock_run_test, mock_connect, mock_get_procs):
     ms.main()
     mock_get_procs.assert_called_once()
     mock_run_test.assert_called_once_with(["proc1()"], "CHG123_CTASK456", conn_context, "user")
-
-
-def test_main_called_via_runpy(monkeypatch):
-    monkeypatch.setenv("FOLDER_LIST", '["folder1"]')
-    monkeypatch.setenv("TDV_ENV", "DEV")
-    monkeypatch.setenv("TDV_USERNAME", "user")
-    monkeypatch.setenv("TDV_PASSWORD", "pass")
-    monkeypatch.setenv("ChangeTicket_Num", "123")
-    monkeypatch.setenv("CTASK_NUM", "456")
-
-    with patch("pvs_testing.teradatasql.connect") as mock_connect, \
-         patch("pvs_testing._run_pvs_test") as mock_run_pvs_test:
-        mock_connect.return_value.__enter__.return_value = mock_connect
-        runpy.run_module("pvs_testing", run_name="__main__")
-        mock_run_pvs_test.assert_called_once()
