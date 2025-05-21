@@ -124,7 +124,7 @@ def main():
     work_item_id = f"CHG{change_num}_CTASK{task_num}"
     logger.info(f"Work Item ID: {work_item_id}")
 
-    Uncomment and adapt this block for actual Teradata connection when ready
+    #Uncomment and adapt this block for actual Teradata connection when ready
     with teradatasql.connect(
             host=teradata_host_server,
             user=teradata_username,
