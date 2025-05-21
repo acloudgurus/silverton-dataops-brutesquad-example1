@@ -50,6 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.TDV_ENV }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Parse the FOLDER_LIST
         id: init-var
         run: |
