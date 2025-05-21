@@ -4,7 +4,8 @@ from unittest.mock import patch, MagicMock
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pvs_testing')))
 
-import pvs_testing as ms  # Ensure this file is named exactly as 'pvs_testing.py'
+import pvs_testing as ms  # This should match your module name exactly
+
 
 def test_fetch_all_sql_files(tmp_path):
     tables_path = tmp_path / "tables"
@@ -28,8 +29,8 @@ def test_extract_proc_names_from_file(tmp_path):
     assert "mydb.${dbEnv}.another_proc" in procs
 
 
-@patch("new_python_Script._fetch_all_sql_files")
-@patch("new_python_Script._extract_proc_names_from_file")
+@patch("pvs_testing._fetch_all_sql_files")
+@patch("pvs_testing._extract_proc_names_from_file")
 @patch.dict(os.environ, {"TDV_ENV": "DEV"})
 def test_get_final_proc_list(mock_extract, mock_fetch):
     mock_fetch.return_value = ["dummy.sql"]
@@ -70,8 +71,8 @@ def test_pass_or_fail_fail_exit():
         ms._pass_or_fail(result_dict)
 
 
-@patch("new_python_Script.execute_tdv_query")
-@patch("new_python_Script._pass_or_fail")
+@patch("pvs_testing.execute_tdv_query")
+@patch("pvs_testing._pass_or_fail")
 def test_run_pvs_test(mock_pass_or_fail, mock_exec):
     mock_exec.return_value = {"TEST_STATUS": ["PASSED"]}
     procs = ["proc1()", "proc2()"]
@@ -88,9 +89,9 @@ def test_run_pvs_test(mock_pass_or_fail, mock_exec):
     "ChangeTicket_Num": "123",
     "CTASK_NUM": "456"
 })
-@patch("new_python_Script._get_final_proc_list", return_value=["proc1()"])
-@patch("new_python_Script.teradatasql.connect")
-@patch("new_python_Script._run_pvs_test")
+@patch("pvs_testing._get_final_proc_list", return_value=["proc1()"])
+@patch("pvs_testing.teradatasql.connect")
+@patch("pvs_testing._run_pvs_test")
 def test_main(mock_run_test, mock_connect, mock_get_procs):
     conn_context = mock_connect.return_value.__enter__.return_value
     ms.main()
