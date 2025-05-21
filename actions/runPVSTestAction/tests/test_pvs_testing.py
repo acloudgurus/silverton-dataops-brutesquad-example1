@@ -7,6 +7,28 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import pvs_testing as ms  # This should match your module name exactly
 
 
+def test_no_tables_directory(tmp_path, caplog):
+    caplog.set_level(logging.INFO)
+    # tmp_path has no tables subdirectory
+    result = _fetch_all_sql_files(str(tmp_path))
+    assert result == []
+    assert any("No tables directory" in msg for msg in caplog.messages)
+
+def test_folder_list_env_not_set(monkeypatch, caplog):
+    caplog.set_level(logging.INFO)
+    monkeypatch.delenv("FOLDER_LIST", raising=False)
+    ret = main()
+    assert ret is None
+    assert any("FOLDER_LIST environment variable not found" in msg for msg in caplog.messages)
+
+def test_folder_list_env_invalid_json(monkeypatch, caplog):
+    caplog.set_level(logging.INFO)
+    monkeypatch.setenv("FOLDER_LIST", "invalid-json")
+    ret = main()
+    assert ret is None
+    assert any("Failed to parse FOLDER_LIST" in msg for msg in caplog.messages)
+
+
 def test_fetch_all_sql_files(tmp_path):
     tables_path = tmp_path / "tables"
     tables_path.mkdir()
