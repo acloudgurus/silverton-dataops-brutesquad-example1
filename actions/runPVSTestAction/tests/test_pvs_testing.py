@@ -2,6 +2,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 import sys
+import logging
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pvs_testing')))
 
 import pvs_testing as ms  # This should match your module name exactly
