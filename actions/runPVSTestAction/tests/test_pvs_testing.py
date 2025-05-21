@@ -1,6 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
+import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pvs_testing')))
 
 import pvs_testing as ms  # Ensure this file is named exactly as 'pvs_testing.py'
