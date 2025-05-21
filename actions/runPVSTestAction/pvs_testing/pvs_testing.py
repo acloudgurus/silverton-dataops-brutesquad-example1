@@ -22,6 +22,7 @@ def execute_tdv_query(td_conn, query):
 
 def _pass_or_fail(result_dict):
     pvs_result = result_dict.get('TEST_STATUS', [''])[0]
+    print(f"PVS Test Status: {pvs_result}") 
     logger.info(f"PVS Test Status: {pvs_result}")
     if pvs_result == 'FAILED':
         logger.info("FAILURE detected - Exiting with status 1")
