@@ -1,6 +1,11 @@
 name: Unit Tests & Coverage Check
 on:
   workflow_dispatch:
+    inputs:
+      environment_usage:
+        description: 'Environment usage: poetry or pip'
+        required: false
+        default: 'poetry'
 
 permissions:
   contents: read
@@ -31,6 +36,12 @@ jobs:
             pip install -r requirements.txt || true
             pip install pytest coverage
           fi
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "::add-path::$HOME/.local/bin"
+          
 
       - name: Run Shared Unit Test Action
         uses: acloudgurus/shared-github-actions/test/python@master
