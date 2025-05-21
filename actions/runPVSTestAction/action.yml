@@ -54,6 +54,7 @@ runs:
   steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
@@ -65,7 +66,7 @@ runs:
         tree -L 3 || find . -type d
             
     - name: Run Shared Unit Test Action
-      uses: zilvertonz/shared-github-actions/test/python@main
+      uses: acloudgurus/shared-github-actions/test/python@master
       with:
         toml_parent_dir: ${{ inputs.toml_parent_dir }}
         debug_mode: ${{ inputs.debug_mode }}

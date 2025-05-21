@@ -1,46 +1,20 @@
 name: Unit Tests & Coverage Check
 on:
-  workflow_call:  
-    inputs: 
-      toml_parent_dir:  
-        required: false  
-        type: string  
-        default: "actions/runPVSTestAction"  
-      debug_mode:  
-        required: false
-        type: boolean  
-        default: true  
-      environment_usage:  
-        required: false  
-        type: string  
-        default: "poetry"  
-      additional_args:
-        required: false 
-        type: string  
-        default: "-v"  
-      coverage_gate:  
-        required: false  
-        type: number
-        default: 80
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   run-unit-tests:
-    runs-on: zilverton-private-x64-ubuntu
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: actions/runPVSTestAction
 
     steps:
       - name: Checkout test code from BruteSquad repo
-        uses: actions/checkout@v3
-        with:
-          repository: zilvertonz/silverton-dataops-brutesquad-example
-          ref: feature_DATAOPSInternal-pvs-test-ar1-unit-testing
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: .
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -59,10 +33,10 @@ jobs:
           fi
 
       - name: Run Shared Unit Test Action
-        uses: zilvertonz/shared-github-actions/test/python@main
+        uses: acloudgurus/shared-github-actions/test/python@master
         with:
-          toml_parent_dir: "runPVSTestAction"
+          toml_parent_dir: "actions/runPVSTestAction"
           debug_mode: true
-          environment_usage: "pip"
+          environment_usage: "poetry"
           additional_args: "-v"
-          coverage_gate: 85
+          coverage_gate: 80

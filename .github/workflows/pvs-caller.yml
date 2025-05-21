@@ -47,9 +47,12 @@ on:
 jobs:
   PVSCaller:
     name: Initialize environment and call composite action
-    runs-on: zilverton-private-x64-ubuntu
+    runs-on: ubuntu-latest
     environment: ${{ inputs.TDV_ENV }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Parse the FOLDER_LIST
         id: init-var
         run: |
@@ -66,7 +69,7 @@ jobs:
 
       - name: Call PVS test composite action
         ## TODO: Change branch reference before pushing to higher environments
-        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/runPVSTestAction@feature_DATAOPSInternal-pvs-test-ar1-unit-testing
+        uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/runPVSTestAction@unittesting
         with:
           TDV_ENV: ${{ inputs.TDV_ENV }}
           TDV_USERNAME: ${{ secrets.TDV_USERNAME }}

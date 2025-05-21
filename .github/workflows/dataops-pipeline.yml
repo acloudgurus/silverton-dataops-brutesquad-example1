@@ -54,10 +54,10 @@ on:
 jobs:
   FindSQLDir:
     name: Initialize and Setup
-    runs-on: zilverton-private-x64-ubuntu
+    runs-on: ubuntu-latest
     env:
       # switch to main before merge
-      p_env: ${{ !(contains(github.ref_name , 'DATAOPSInternal' ))  && 'main' || github.ref_name  }}
+      p_env: ${{ !(contains(github.ref_name , 'unittesting' ))  && 'main' || github.ref_name  }}
     outputs:
       folder-list: ${{ fromJSON(steps.find-folders.outputs.outputs).folder-list  }}
       folder-list-fullpath:  ${{ fromJSON(steps.find-folders.outputs.outputs).folder-list-fullpath  }}
@@ -97,9 +97,9 @@ jobs:
       - name: Find all ddl dml stored_proc full path dir under the src check out dir
         id: find-folders
         # switch to main before merge into main
-        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/dynamic-uses@master
         with:
-          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/findSqlFolderAction@${{ env.p_env }}
+          uses: acloudgurus/silverton-dataops-brutesquad-example1/actions/findSqlFolderAction@${{ env.p_env }}
           with: '{ OPS_TYPE: ${{ inputs.OPS_TYPE }} }'
 
 ## TODO: Uncomment these sections when PVS testing complete
