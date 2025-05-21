@@ -1,0 +1,83 @@
+name: PVS Test Caller
+
+on:
+  workflow_call:
+    inputs:
+      TDV_ENV:
+        description: TDV Environment
+        type: string
+      FOLDER_LIST:
+        description: Folders containing changlogs for stored procedures to be tested
+        type: string
+      LIQUIBASE_COMMAND:
+        required: true
+        type: string
+      OPS_TYPE:
+        required: true
+        type: string
+      ChangeTicket_Num:
+        required: true
+        type: string
+      CTASK_NUM:
+        required: true
+        type: string
+      toml_parent_dir:  
+        required: false  
+        type: string  
+        default: "actions/runPVSTestAction"  
+      debug_mode:  
+        required: false
+        type: boolean  
+        default: true  
+      environment_usage:  
+        required: false  
+        type: string  
+        default: "poetry"  
+      additional_args:
+        required: false 
+        type: string  
+        default: "-v"  
+      coverage_gate:  
+        required: false  
+        type: number
+        default: 80
+
+
+## TODO: Update environment variables as envs are made available/tested - THEY ARE ALL POINTING TO DEV SECRETS FOR NOW
+jobs:
+  PVSCaller:
+    name: Initialize environment and call composite action
+    runs-on: zilverton-private-x64-ubuntu
+    environment: ${{ inputs.TDV_ENV }}
+    steps:
+      - name: Parse the FOLDER_LIST
+        id: init-var
+        run: |
+          folders_array=$(echo "${{ inputs.FOLDER_LIST }}" | jq -c --raw-input 'split(" ")')
+          echo "folders_array=$folders_array" >> "$GITHUB_ENV"
+          echo "INFO: The array is $folders_array"
+
+      - name: Parse the DIRECTORY_LIST
+        id: init-var1
+        run: |
+          dir_array=$(echo "${{ inputs.DIRECTORY_LIST }}" | jq -c --raw-input 'split(" ")')
+          echo "dir_array=$dir_array" >> "$GITHUB_ENV"
+          echo "INFO: The array is $dir_array"
+
+      - name: Call PVS test composite action
+        ## TODO: Change branch reference before pushing to higher environments
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/runPVSTestAction@feature_DATAOPSInternal-pvs-test-ar1-unit-testing
+        with:
+          TDV_ENV: ${{ inputs.TDV_ENV }}
+          TDV_USERNAME: ${{ secrets.TDV_USERNAME }}
+          TDV_PASSWORD: ${{ secrets.TDV_PASSWORD }}
+          FOLDER_LIST: ${{ env.folders_array }}
+          LIQUIBASE_COMMAND: ${{ inputs.LIQUIBASE_COMMAND }}
+          OPS_TYPE: ${{ inputs.OPS_TYPE }}
+          ChangeTicket_Num: ${{ inputs.ChangeTicket_Num }}
+          CTASK_NUM: ${{ inputs.CTASK_NUM }}
+          toml_parent_dir: ${{ inputs.toml_parent_dir }}
+          debug_mode: ${{ inputs.debug_mode }}
+          environment_usage: ${{ inputs.environment_usage }}
+          additional_args: ${{ inputs.additional_args }}
+          coverage_gate: ${{ inputs.coverage_gate }}

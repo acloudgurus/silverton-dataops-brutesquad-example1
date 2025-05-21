@@ -1,0 +1,177 @@
+name: dataops pipeline deployment workflow
+
+on:
+  workflow_call:
+    inputs:
+      TDV_ENV:
+        required: true
+        type: string
+      LIQUIBASE_COMMAND:
+        required: true
+        type: string
+      OPS_TYPE:
+        required: true
+        type: string
+      RUN_RULES_ENGINE:
+        required: true
+        type: boolean
+      USE_LIQUIBASE_TAG:
+        required: true
+        type: boolean
+      LIQUIBASE_TAG:
+        required: false
+        type: string
+      RulesEngine_TAG:
+        required: true
+        type: string
+      ChangeTicket_Num:
+        required: true
+        type: string
+      CTASK_NUM:
+        required: true
+        type: string
+      toml_parent_dir:  
+        required: false  
+        type: string  
+        default: "actions/runPVSTestAction"  
+      debug_mode:  
+        required: false
+        type: boolean  
+        default: true  
+      environment_usage:  
+        required: false  
+        type: string  
+        default: "poetry"  
+      additional_args:
+        required: false 
+        type: string  
+        default: "-v"  
+      coverage_gate:  
+        required: false  
+        type: number
+        default: 80
+
+jobs:
+  FindSQLDir:
+    name: Initialize and Setup
+    runs-on: zilverton-private-x64-ubuntu
+    env:
+      # switch to main before merge
+      p_env: ${{ !(contains(github.ref_name , 'DATAOPSInternal' ))  && 'main' || github.ref_name  }}
+    outputs:
+      folder-list: ${{ fromJSON(steps.find-folders.outputs.outputs).folder-list  }}
+      folder-list-fullpath:  ${{ fromJSON(steps.find-folders.outputs.outputs).folder-list-fullpath  }}
+    steps:
+      - name: Abort if a change ticket Status is not 'implement' and TDV_ENV is PRD
+        run: |
+          if [[ ${{inputs.TDV_ENV}} == 'PRD' ]]  
+          then      
+            r1=$( curl -u "${{ env.SNOW_USERNAME }}:${{ env.SNOW_PASSWORD }}" \
+            "${{env.SNOW_INSTANCE_URL}}/api/now/table/change_request?sysparm_query=number=${{inputs.ChangeTicket_Num}}" -H "Accept: application/json" )
+            
+            SYS_ID=$( echo "$r1" | jq -r '.result[0].sys_id // ""' )
+
+            RESPONSE=$( curl -s -u "${{ env.SNOW_USERNAME }}:${{ env.SNOW_PASSWORD }}" \
+            "${{env.SNOW_INSTANCE_URL}}/api/now/table/change_request/${SYS_ID}?sysparm_fields=number,state" -H "Accept: application/json" )
+            
+            CHANGE_NUMBER=$(echo "$RESPONSE" | jq -r '.result.number')
+            CHANGE_STATE=$(echo "$RESPONSE" | jq -r '.result.state')
+            echo "Information: Change Number: $CHANGE_NUMBER, Status: $CHANGE_STATE"
+            if [[ $CHANGE_STATE != '-1' ]]
+            then
+              echo "Information: TDV_ENV is set as PRD/Production, but change ticket ${{inputs.ChangeTicket_Num}} is not in <implement:-1> status, exiting ..."
+              exit 2
+            else
+              echo "Information: TDV_ENV is set as PRD/Production, and change ticket ${{inputs.ChangeTicket_Num}} is  in <implement:-1> status, proceeding ..."
+            fi
+          fi
+        env:
+          SNOW_USERNAME: ${{ secrets.SNOW_USERNAME }}
+          SNOW_PASSWORD: ${{ secrets.SNOW_PASSWORD }}
+          SNOW_INSTANCE_URL: ${{ secrets.SNOW_INSTANCE_URL }}
+        shell: bash
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find all ddl dml stored_proc full path dir under the src check out dir
+        id: find-folders
+        # switch to main before merge into main
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        with:
+          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/findSqlFolderAction@${{ env.p_env }}
+          with: '{ OPS_TYPE: ${{ inputs.OPS_TYPE }} }'
+
+## TODO: Uncomment these sections when PVS testing complete
+ # RunREScan:
+ #   uses: ./.github/workflows/run_RE_scan.yaml
+ #   if: ${{ (inputs.TDV_ENV == 'UAT') ||  (inputs.TDV_ENV == 'PRD') || (inputs.RUN_RULES_ENGINE == true) }}
+ #   needs:
+ #     - FindSQLDir
+ #   with:
+ #     # switch to main when AWS prod/main is ready
+ #     #RE_ENV: ${{ !(contains(github.ref_name , 'rulesengine' ))  && 'main' || 'dev'  }}
+ #     RE_ENV: ${{ !(contains(github.ref_name , 'rulesengine' ))  && 'dev' || 'dev'  }}
+ #     TDV_ENV: ${{ inputs.TDV_ENV }}
+ #     OPS_TYPE: ${{ inputs.OPS_TYPE }}
+ #     RulesEngine_TAG: ${{ inputs.RulesEngine_TAG}}
+ #     DIR_LIST: ${{ needs.FindSQLDir.outputs.folder-list }}
+ #   secrets: inherit
+#
+#  LiquibaseProcessor:
+#    name: Liquibase Process
+#    uses: ./.github/workflows/liquibase-processor.yml
+#    if: ${{ always() && ((needs.RunREScan.result == 'skipped' || needs.RunREScan.result == 'success')) && (needs.FindSQLDir.result == 'success') }}
+#    needs:
+#      - FindSQLDir
+#      - RunREScan
+#    with:
+#      TDV_ENV: ${{ inputs.TDV_ENV }}
+#      LIQUIBASE_COMMAND: ${{ inputs.LIQUIBASE_COMMAND }}
+#      OPS_TYPE: ${{ inputs.OPS_TYPE }}
+#      USE_LIQUIBASE_TAG: ${{ inputs.USE_LIQUIBASE_TAG}}
+#      LIQUIBASE_TAG: ${{ inputs.LIQUIBASE_TAG }}
+#      FOLDER_LIST: ${{ needs.FindSQLDir.outputs.folder-list-fullpath }}
+#    secrets: inherit
+
+  # PVS Test entry point
+  ## TODO: Optional run functionality with UAT pipeline
+  ## TODO: Mandatory run functionality with PROD pipeline
+  ## TODO: Only runs in Test/UAT TDV Env - Validate that stored procs in UAT match exactly what is deploying to prod
+  ## TODO-Continued: May need to perform UAT deployment step before calling pvs step in the case of a prod pipeline run
+  ## TODO-Continued: This may be needed so that the stored procs in UAT match exactly what is deploying to prod
+  PVSTest:
+    name: PVS Test
+    uses: ./.github/workflows/pvs-caller.yml
+#     if: ${{ (inputs.LIQUIBASE_COMMAND == 'update') && (inputs.OPS_TYPE == 'all' || inputs.OPS_TYPE == 'stored_proc') }}
+#     #   if: ${{github.ref == 'refs/heads/uat'}}         TODO: Add this conditional to if check once ready to work in uat/test env and combine with if check below
+#     #   if: ${{ always() && ((needs.RunREScan.result == 'skipped' || needs.RunREScan.result == 'success')) && (needs.FindSQLDir.result == 'success') }} # TODO: Add additional check for liquibase job completion (Might need to consult with Jack to determine whether liquibase always runs)
+#     needs:
+#       - FindSQLDir
+# #      - RunREScan      ## TODO: Reinstate after testing complete
+# #      - LiquibaseProcessor
+    with:
+      TDV_ENV: ${{ inputs.TDV_ENV }}
+      FOLDER_LIST: ${{ needs.FindSQLDir.outputs.folder-list-fullpath }}
+      LIQUIBASE_COMMAND: ${{ inputs.LIQUIBASE_COMMAND }}
+      OPS_TYPE: ${{ inputs.OPS_TYPE }}
+      ChangeTicket_Num: ${{ inputs.ChangeTicket_Num }}
+      CTASK_NUM: ${{ inputs.CTASK_NUM }}
+      toml_parent_dir: ${{ inputs.toml_parent_dir }}
+      debug_mode: ${{ inputs.debug_mode }}
+      environment_usage: ${{ inputs.environment_usage }}
+      additional_args: ${{ inputs.additional_args }}
+      coverage_gate: ${{ inputs.coverage_gate }}
+    secrets: inherit
+
+  # UnitTests:
+  #   name: Run Unit Tests & Coverage
+  #   uses: ./.github/workflows/unit_test_caller.yml
+  #   needs: [ FindSQLDir ]
+  #   with:
+  #     toml_parent_dir: "runPVSTestAction"
+  #     debug_mode: true
+  #     environment_usage: "poetry"
+  #     additional_args: "-v"
+  #     coverage_gate: 80
+  #   secrets: inherit

@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "toml_finder"
+version = "0.1.0"
+description = ""
+authors = ["c7p5fk <Zachary.Hinds@Cigna.com>"]
+packages = [
+    { include = "toml_utilities" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+toml = "^0.10.2"
+pyyaml = "^6.0.1"
+
+[tool.poetry.scripts]
+obtain_build_config = "toml_utilities.toml_utilities:main"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

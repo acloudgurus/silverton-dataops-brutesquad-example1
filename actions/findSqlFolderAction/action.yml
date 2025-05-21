@@ -1,0 +1,82 @@
+name: find DDL/DML/Stored Proc dir location
+description: DDL/DML/Stored Proc dir location and write the full path list to env var with @ delimiter
+inputs:
+  OPS_TYPE:
+    description: 'OPS Type. DDL, DML or Stored Procedure'
+    required: true
+outputs:
+  folder-list:
+    description: "The list of the folder names"
+    value: ${{ steps.find-folders.outputs.folder-list }}
+  folder-list-fullpath:
+    description: "The list of the folder names in full path"
+    value: ${{ steps.find-folders.outputs.folder-list-fullpath }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        set -x
+        python -m pip install --upgrade pip
+        pip install poetry==1.7.1
+        poetry -C ${{ github.action_path }}/utilities/toml_utilities install
+      shell: bash
+    - name: collect ddl dml stored/proc list into env var DDL_LIST
+      id: find-folders
+      run: |
+        # init variables
+        ddls=""
+        dmls=""
+        sps=""
+        ddl1=""
+        dml1=""
+        sp1=""
+        folders_r=""
+        folders_f=""
+        delimiter=${GITHUB_WORKSPACE}"/"
+        
+
+        if [ ${{inputs.OPS_TYPE}} == "tdv_ddl" -o ${{inputs.OPS_TYPE}} == "all" ]
+        then
+          ddl1=$(poetry -C ${{ github.action_path }}/utilities/toml_utilities run obtain_build_config directory_types $GITHUB_WORKSPACE --ops_type tdv_ddl )   
+          ddl2=`echo $ddl1 | sed 's/:/:TERADATA_DDL /g'`
+          ddls=`echo $ddl2 | sed 's/$/:TERADATA_DDL /g'`
+        fi
+        
+        if [ ${{inputs.OPS_TYPE}} == "tdv_dml" -o ${{inputs.OPS_TYPE}} == "all" ]
+        then
+          dml1=$(poetry -C ${{ github.action_path }}/utilities/toml_utilities run obtain_build_config directory_types $GITHUB_WORKSPACE --ops_type tdv_dml )   
+          dml2=`echo $dml1 | sed 's/:/:TERADATA_DML /g'`
+          dmls=`echo $dml2 | sed 's/$/:TERADATA_DML /g'`
+        fi
+        
+        if [ ${{inputs.OPS_TYPE}} == "stored_proc" -o ${{inputs.OPS_TYPE}} == "all" ]
+        then
+          sp1=$(poetry -C ${{ github.action_path }}/utilities/toml_utilities run obtain_build_config directory_types $GITHUB_WORKSPACE --ops_type stored_proc  )   
+          sp2=`echo $sp1 | sed 's/:/:stored_proc /g'`
+          sps=`echo $sp2 | sed 's/$/:stored_proc /g'`
+        fi
+
+        final=${sps}" "${ddls}" "${dmls}" "   
+        folders_f=${sp1}" "${ddl1}" "${dml1}" "         
+
+
+
+        for i in $final
+        do
+          r1=`awk -F "$delimiter" '{print $2}' <<< "$i"`
+          folders_r=${folders_r}"$r1""@"
+        done
+        
+        echo "INFO: folders_r=$folders_r"
+        
+        echo "folder-list=$folders_r" >> $GITHUB_OUTPUT
+        
+        echo "folder-list-fullpath=$folders_f" >> $GITHUB_OUTPUT
+        echo "INFO: folders_f=$folders_f"
+      shell: bash

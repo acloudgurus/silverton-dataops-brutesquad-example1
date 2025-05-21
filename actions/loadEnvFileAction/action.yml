@@ -1,0 +1,26 @@
+name: Env File load into dataops env
+description: "Load corresponding environment file in dataops env"
+inputs:
+  env_name:
+    required: true
+    description: "Environment name from which to load file"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Load Environment Variables
+      shell: bash
+      env:
+        ENV_FILE: ${{ github.workspace }}/dataops_env/${{ inputs.env_name }}.env
+      run: |
+        # If env file exists
+        if [ -f $ENV_FILE ]; then
+          # Remove all comments and read each variable key and value
+          grep -v '^#' "$ENV_FILE" | while IFS='=' read -r key value; do
+            # Remove windows line breaks that may exist in the file
+            echo "${key}=$(echo $value | sed 's/\r$//')" >> $GITHUB_ENV
+          done
+        else
+          echo "::error title=File Not Found::Provided environment file $ENV_FILE does not exist"
+          exit 1
+        fi

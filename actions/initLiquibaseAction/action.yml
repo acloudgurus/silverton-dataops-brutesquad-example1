@@ -1,0 +1,36 @@
+name: "init_liquibase_action"
+description: "To setup liquibase"
+runs:
+  using: "composite"
+  steps:
+    - name: Show the ENV variables
+      run: |
+        echo "GITHUB_WORKSPACE is $GITHUB_WORKSPACE"
+        echo "github.action_path is ${{ github.action_path }}"
+        echo "github.workspace is ${{ github.workspace }}"
+      shell: bash
+    - name: Copy JDBC Driver to local folder "lib"
+      run: |
+        mkdir lib
+        echo "cp ${{ github.action_path }}/lib/TeraJDBC__indep_indep.20.00.00.34.tar lib/"
+        tar -xvf ${{ github.action_path }}/lib/TeraJDBC__indep_indep.20.00.00.34.tar -C lib/
+      shell: bash
+    - name: Get JAR files for Liquibase to handle Teradata DB
+      run: |
+        curl -L https://github.com/liquibase/liquibase-teradata/releases/download/v${TERA_LB_VERSION}/liquibase-teradata-${TERA_LB_VERSION}.jar --output lib/liquibase-teradata-${TERA_LB_VERSION}.jar
+      env:
+        TERA_LB_VERSION: "4.29.2"
+      shell: bash
+    - name: Install liquibase
+      run: |
+        curl -L https://github.com/liquibase/liquibase/releases/download/v${LB_VERSION}/liquibase-${LB_VERSION}.zip --output liquibase-${LB_VERSION}.zip
+        unzip -o -d liquibase liquibase-${LB_VERSION}.zip
+        # The TeraJDBC file needs to be saved in the "liquibase/lib" that it can't be configured to other folder 
+        pushd ./liquibase/lib/
+        tar xf ${{ github.action_path }}/lib/TeraJDBC__indep_indep.20.00.00.34.tar
+        curl -L https://github.com/liquibase/liquibase-teradata/releases/download/v${TERA_LB_VERSION}/liquibase-teradata-${TERA_LB_VERSION}.jar --output ./liquibase-teradata-${TERA_LB_VERSION}.jar
+        popd
+      env:
+        LB_VERSION: "4.30.0"
+        TERA_LB_VERSION: "4.29.2"
+      shell: bash

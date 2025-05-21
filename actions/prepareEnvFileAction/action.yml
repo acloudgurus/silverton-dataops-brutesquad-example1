@@ -1,0 +1,12 @@
+name: dataops AWS env file preparation & DDL/DML/Stored Proc sub-dir location
+description: dataops AWS env file preparation & DDL/DML/Stored Proc sub-dir location
+runs:
+  using: "composite"
+  steps:
+    - name: copy the AWS env files
+      run: |
+        cd ${{ github.action_path }}        
+        mkdir $GITHUB_WORKSPACE/dataops_env
+        cp ./environments/*.env $GITHUB_WORKSPACE/dataops_env     
+
+      shell: bash

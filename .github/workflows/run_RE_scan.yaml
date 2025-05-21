@@ -1,0 +1,113 @@
+name: Run Rules Engine on the folders provided in the DIR_LIST
+
+on:
+  workflow_call:
+    inputs:
+      RE_ENV:
+        required: true
+        type: string
+      TDV_ENV:
+        required: true
+        type: string
+      OPS_TYPE:
+        required: true
+        type: string
+      RulesEngine_TAG:
+        required: true
+        type: string  
+      DIR_LIST:
+        required: true
+        type: string
+
+env:
+  # switch to main before merge to main
+  p_env: ${{ !(contains(github.ref_name , 'DATAOPSInternal' ))  && 'main' || github.ref_name  }}      
+  
+
+jobs:
+  Deploy:
+    name: Run Rules Engine scan
+    runs-on: zilverton-private-x64-ubuntu
+    environment:
+      name: ${{ inputs.RE_ENV }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: copy AWS env files from dataops dir to solution team checkout-src dir
+        # switch to main before merge to main
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        with:
+          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/prepareEnvFileAction@${{ env.p_env }}
+
+      - name: Set GitHub Read Access Token
+        run: |
+          git config --global url."https://${{ secrets.ORG_REPO_READ_ACCESS }}@github.com".insteadOf "https://github.com"
+
+      - name: Load Common Variables
+        # swtich to main before merge to main
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        with:
+          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/loadEnvFileAction@${{ env.p_env }}
+          with: '{ env_name: common }'
+
+      - name: Load Environment Variables
+        # swtich to main before merge to main
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        with:
+          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/loadEnvFileAction@${{ env.p_env }}
+          with: '{ env_name: ${{ inputs.RE_ENV }} }'   
+
+      - name: Authenticate via OIDC Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.REGION }}
+          role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/Enterprise/${{ env.RE_repo_name }}-deployer"
+
+      - name: Set Workspace Name
+        env:
+          BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || (github.event_name == 'delete' && github.event.ref || github.ref_name) }}
+        run: |
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "WORKSPACE=default" >> $GITHUB_ENV
+          else
+            # Branch name is expected to be feature-JIRA_PROJECT-JIRA_NUMBER-DESCRIPTION
+            # This will parse out JIRA_PROJECT-JIRA_NUMBER to create a workspace for the ticket
+            WORKSPACE_NAME=$(echo "$BRANCH_NAME" | sed 's/\//-/g' | cut -d '-' -f 2-3)
+            echo "WORKSPACE=$WORKSPACE_NAME" >> $GITHUB_ENV
+          fi
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Download/Run Rules Engine image from Amazon ECR
+        id: run-RE-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ inputs.RulesEngine_TAG }}
+        run: |
+          # download a docker image from ECR
+          dir_list=`echo ${{ inputs.DIR_LIST }} | sed 's/@/ /g'`
+          echo "-- INFO: The dir list is $dir_list"          
+          
+          tdv_env=`echo "${{ inputs.TDV_ENV }}" | tr '[:upper:]' '[:lower:]'`          
+          echo "-- INFO: Docker Run Start"          
+          b_tag=`echo $GITHUB_REF | sed 's/refs\/heads\///g' | sed 's/feature_//g'`  
+          re_find=`echo $b_tag | sed 's/rulesengine/findREchangeMatch/g'`          
+          echo "-- INFO: re_find=$re_find"            
+            
+          # dev/test/main branch or non "feature_rulesengineYYYY" keyword branch use ECR without branch suffix 
+          if [ $b_tag == "dev" -o  $b_tag == "test" -o $b_tag == "main" -o $b_tag == $re_find ]          
+          then
+            ecr_tag=${ECR_REPOSITORY}
+            
+          # "feature_rulesengineYYYY" keyword branch use ECR with branch suffix "rulesengineYYYY"  and the image tag provided from the Solution Repo Branch workflow run  
+          else
+            ecr_tag=${ECR_REPOSITORY}"-"$b_tag            
+          fi
+          echo "-- INFO: ecr_tag=$ecr_tag"
+          echo "-- INFO: b_tag=$b_tag"
+
+          docker run --volume $GITHUB_WORKSPACE:/src_checkout $ECR_REGISTRY/$ecr_tag:$IMAGE_TAG /bin/bash -c "run_rules.sh /src_checkout $tdv_env $dir_list"

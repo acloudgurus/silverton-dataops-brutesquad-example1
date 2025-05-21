@@ -1,0 +1,91 @@
+name: liquibase processor workflow
+
+on:
+  workflow_call:
+    inputs:
+      TDV_ENV:
+        required: true
+        type: string
+      LIQUIBASE_COMMAND:
+        required: true
+        type: string
+      OPS_TYPE:
+        required: true
+        type: string
+      USE_LIQUIBASE_TAG:
+        required: true
+        type: boolean
+      LIQUIBASE_TAG:
+        required: false
+        type: string
+      FOLDER_LIST:
+        required: true
+        type: string
+env:
+  # switch to main before merge to main
+  p_env: ${{ !(contains(github.ref_name , 'DATAOPSInternal' ))  && 'main' || github.ref_name  }}
+
+jobs:
+  InitAndSetup:
+    name: Initialize and setup the liquibase on runner
+    runs-on: zilverton-private-x64-ubuntu
+    environment: ${{ inputs.TDV_ENV }}
+    outputs:
+      folder-list: ${{ steps.init-var.outputs.folders_array}}
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id}}
+    steps:
+      - name: Checkout Repo code
+        uses: actions/checkout@v4
+
+      - name: Check if secrets exists
+        env:
+          secret_username: ${{ secrets.TDV_USERNAME }}
+          secret_password: ${{ secrets.TDV_PASSWORD }}
+        if: ${{ env.secret_username == '' || env.secret_password == '' }}
+        run: |
+          echo "TDV credentials are not available for the environment ${{ inputs.TDV_ENV }} "
+          exit 1
+
+      - name: Init the Liquibase
+        id: init-liquibase
+        # switch to main before merge
+        uses: zilvertonz/silverton-dataops-brutesquad-example/actions/dynamic-uses@main
+        with:
+          uses: zilvertonz/silverton-dataops-brutesquad-example/actions/initLiquibaseAction@${{ env.p_env }}
+
+      - name: Parse the FOLDER_LIST
+        id: init-var
+        run: |
+          folders_array=$(echo "${{ inputs.FOLDER_LIST }}" | jq -c --raw-input 'split(" ")')
+          echo "folders_array=$folders_array" >> "$GITHUB_ENV"
+          echo "INFO: The array is $folders_array"
+        shell: bash
+
+      - name: Run the Liquibase commands
+        id: liquibase-run
+        run: |
+          # Convert the string containing folder list to an array
+          read -ra folder_array <<< "${{ inputs.FOLDER_LIST }}"
+          
+          for folder_path in ${folder_array[@]}; do
+            echo "INFO: -- Process the $folder_path"
+            properties_file="$folder_path/config/${{ inputs.TDV_ENV }}/liquibase.properties"
+
+            if [[ "${{ inputs.LIQUIBASE_TAG }}" != ""  && "${{ inputs.ASSIGN_LIQUIBASE_TAG }}" == "true" ]]; then
+              TAG_CMD="--tag=${{ inputs.LIQUIBASE_TAG }}"
+              echo "INFO: Now TAG_CMD is $TAG_CMD"
+              # If the liquibase command is update, we need to apply the TAG first          
+              if [[ "${{ inputs.LIQUIBASE_COMMAND }}" == "update" ]]; then
+                ./liquibase/liquibase tag $TAG_CMD \
+                  --defaultsFile=$properties_file \
+                  --logLevel=FINE \
+                  --username=${{ secrets.TDV_USERNAME }} --password=${{ secrets.TDV_PASSWORD }}
+              fi
+            fi
+            
+            ./liquibase/liquibase ${{ inputs.LIQUIBASE_COMMAND }} $TAG_CMD \
+              --defaultsFile=$properties_file \
+              --logLevel=FINE \
+              --username=${{ secrets.TDV_USERNAME }} --password=${{ secrets.TDV_PASSWORD }}
+          done
+        shell: bash

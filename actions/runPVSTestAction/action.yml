@@ -1,0 +1,89 @@
+name: PVS Test action
+description: Composite action responsible for creating python enviornment and calling the pvs_testing.
+inputs:
+  TDV_ENV:
+    description: TDV Environment
+    required: true
+  TDV_USERNAME:
+    description: TDV DEV Username
+    required: true
+  TDV_PASSWORD:
+    description: TDV DEV Password
+    required: true
+  FOLDER_LIST:
+    description: Folders containing changlogs for stored procedures to be tested
+    required: true
+  DIRECTORY_LIST:
+    description: Directories List
+    required: true
+  LIQUIBASE_COMMAND:
+    description: Liquibase command being used
+    required: true
+  OPS_TYPE:
+    description: Types of operations being performed
+    required: true
+  ChangeTicket_Num:
+    description: Changeticket number to used as part of workitemID in PVS
+    required: true
+  CTASK_NUM:
+    description: CTASK number to used as part of workitemID in PVS
+    required: true
+  toml_parent_dir:  
+    required: false  
+    type: string  
+    default: "actions/runPVSTestAction"  
+  debug_mode:  
+    required: false
+    type: boolean  
+    default: true  
+  environment_usage:  
+    required: false  
+    type: string  
+    default: "poetry"  
+  additional_args:
+    required: false 
+    type: string  
+    default: "-v"  
+  coverage_gate:  
+    required: false  
+    type: number
+    default: 80
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Print directory tree
+      shell: bash
+      run: |
+        echo "Current directory: $(pwd)"
+        tree -L 3 || find . -type d
+            
+    - name: Run Shared Unit Test Action
+      uses: zilvertonz/shared-github-actions/test/python@main
+      with:
+        toml_parent_dir: ${{ inputs.toml_parent_dir }}
+        debug_mode: ${{ inputs.debug_mode }}
+        environment_usage: ${{ inputs.environment_usage }}
+        additional_args: ${{ inputs.additional_args }}
+        coverage_gate: ${{ inputs.coverage_gate }}
+
+    - name: run PVS Test python script
+      shell: bash
+      env:
+        TDV_USERNAME: ${{ inputs.TDV_USERNAME }}
+        TDV_PASSWORD: ${{  inputs.TDV_PASSWORD }}
+        DIRECTORY_LIST: ${{ inputs.DIRECTORY_LIST }}
+        FOLDER_LIST: ${{ inputs.FOLDER_LIST }}
+        TDV_ENV: ${{ inputs.TDV_ENV }}
+        LIQUIBASE_COMMAND: ${{ inputs.LIQUIBASE_COMMAND }}
+        OPS_TYPE: ${{ inputs.OPS_TYPE }}
+        ChangeTicket_Num: ${{ inputs.ChangeTicket_Num }}
+        CTASK_NUM: ${{ inputs.CTASK_NUM }}
+      run: |
+        poetry -C ${{ github.action_path }} run pvs_testing
