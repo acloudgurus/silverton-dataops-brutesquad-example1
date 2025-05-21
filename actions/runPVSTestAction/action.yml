@@ -66,7 +66,7 @@ runs:
         tree -L 3 || find . -type d
             
     - name: Run Shared Unit Test Action
-      uses: acloudgurus/shared-github-actions/test/python@main
+      uses: acloudgurus/shared-github-actions/test/python@master
       with:
         toml_parent_dir: ${{ inputs.toml_parent_dir }}
         debug_mode: ${{ inputs.debug_mode }}
