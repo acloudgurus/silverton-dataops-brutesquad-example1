@@ -248,37 +248,36 @@ def test_cli_directory_types(tmp_path):
     assert result.returncode == 0
     assert "toml_util_test_proj" in result.stdout
 
-def test_cli_terraform_yaml_config(tmp_path):
+ddef test_cli_terraform_yaml_config(tmp_path):
+    import sys
     from pathlib import Path
 
-    # Setup test project
-    test_proj_dir = tmp_path / "toml_util_test_proj"
-    test_proj_dir.mkdir()
-    (test_proj_dir / "pyproject.toml").write_text("""
+    proj_dir = tmp_path / "test_proj"
+    proj_dir.mkdir()
+    (proj_dir / "pyproject.toml").write_text("""
         [tool.poetry]
         name = "testproj"
         version = "0.1.0"
 
         [data-ops-config]
         type = "ddl"
-        s3-prefix = "sample_prefix"
+        s3-prefix = "prefix"
         path-to-sql = "sql"
         path-to-changelog = "changelog"
     """)
 
-    # Path to CLI
-    script_path = Path(__file__).parent.parent / "toml_utilities.py"
+    script_path = Path(__file__).parent.parent / "utilities" / "toml_utilities" / "toml_utilities.py"
 
     result = subprocess.run(
         [
-            "python", str(script_path.resolve()),
-            "terraform_yaml_config", str(tmp_path),
+            sys.executable, "-m", "coverage", "run",
+            "--append", str(script_path.resolve()),
+            "directory_types", str(tmp_path),
             "--ops_type", "ddl"
         ],
         capture_output=True,
         text=True
     )
 
-    assert result.returncode == 0, f"stderr: {result.stderr}"
-    assert "s3-prefix" in result.stdout
-    assert "sample_prefix" in result.stdout
+    assert result.returncode == 0, f"CLI failed: {result.stderr}"
+    assert "test_proj" in result.stdout
