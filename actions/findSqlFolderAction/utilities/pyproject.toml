@@ -26,5 +26,13 @@ build-backend = "poetry.core.masonry.api"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-omit = ["toml_utilities/__init__.py"]
+branch = true
+parallel = true
+source = ["."]
+include = ["*.py"]
+omit = []
+concurrency = ["multiprocessing"]
+dynamic_context = "test_function"
+debug = ["trace"]
+include_subprocess = true
 
