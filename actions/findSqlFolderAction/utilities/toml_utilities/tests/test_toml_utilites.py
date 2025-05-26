@@ -1,5 +1,7 @@
 import os
 from unittest import TestCase
+import subprocess
+from pathlib import Path
 
 import yaml
 
@@ -210,3 +212,38 @@ def test_generate_yaml_config_with_missing_type(tmp_path):
     with pytest.raises(KeyError, match="type"):
         utils.generate_yaml_config()
 
+def test_cli_directory_types(tmp_path):
+    # Set up directory structure
+    toml_util_dir = tmp_path / "toml_util_test_proj"
+    toml_util_dir.mkdir()
+
+    # Create a dummy pyproject.toml
+    (toml_util_dir / "pyproject.toml").write_text("""
+        [tool.poetry]
+        name = "testproj"
+        version = "0.1.0"
+
+        [data-ops-config]
+        type = "ddl"
+        s3-prefix = "sample_prefix"
+        path-to-sql = "sql"
+        path-to-changelog = "changelog"
+    """)
+
+    # Construct path to toml_utilities.py (adjust if needed)
+    script_path = Path(__file__).parent.parent / "toml_utilities.py"
+
+    # Run CLI via subprocess to trigger main() coverage
+    result = subprocess.run(
+        [
+            "python", str(script_path.resolve()),
+            "directory_types", str(tmp_path),
+            "--ops_type", "ddl"
+        ],
+        capture_output=True,
+        text=True
+    )
+
+    # Check output
+    assert result.returncode == 0
+    assert "toml_util_test_proj" in result.stdout
