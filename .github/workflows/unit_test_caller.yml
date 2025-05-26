@@ -39,10 +39,19 @@ jobs:
 
           
 
-      - name: Run Shared Unit Test Action
-        uses: acloudgurus/shared-github-actions/test/python@master
+      # - name: Run Shared Unit Test Action
+      #   uses: acloudgurus/shared-github-actions/test/python@master
+      #   with:
+      #     toml_parent_dir: "actions/runPVSTestAction"
+      #     debug_mode: true
+      #     environment_usage: "poetry"
+      #     additional_args: "-v"
+      #     coverage_gate: 80
+
+      - name: Run Shared Unit Test Action for toml utilities
+        uses: acloudgurus/shared-github-actions/test/python@master  # path to your action.yml
         with:
-          toml_parent_dir: "actions/runPVSTestAction"
+          toml_parent_dir: "actions/findSqlFolderAction/utilities/toml_utilities"
           debug_mode: true
           environment_usage: "poetry"
           additional_args: "-v"
