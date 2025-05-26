@@ -81,6 +81,45 @@ class TestTomlUtilities(TestCase):
         result = toml_utils.parse_data_ops_configurations()
         self.assertIn(self.dir_with_pyproject, result)
 
+    def test_parse_individual_data_ops_config_with_invalid_toml(tmp_path):
+        from toml_utilities.toml_utilities import _parse_individual_data_ops_config
+    
+        test_dir = tmp_path / "invalid"
+        test_dir.mkdir()
+        (test_dir / "pyproject.toml").write_text("This is not valid TOML")
+    
+        result = _parse_individual_data_ops_config(str(test_dir))
+        assert result == {}
+
+    def test_generate_yaml_config_with_missing_type(tmp_path):
+        from toml_utilities.toml_utilities import TomlUtilities
+    
+        test_dir = tmp_path / "proj"
+        test_dir.mkdir()
+        (test_dir / "pyproject.toml").write_text("""
+            [data-ops-config]
+            name = "test"
+        """)
+    
+        utils = TomlUtilities(str(tmp_path), ops_type="all")
+        yaml_output = utils.generate_yaml_config()
+        assert "name: proj" in yaml_output
+
+    def test_generate_yaml_config_with_unknown_type(tmp_path):
+        from toml_utilities.toml_utilities import TomlUtilities
+    
+        test_dir = tmp_path / "proj"
+        test_dir.mkdir()
+        (test_dir / "pyproject.toml").write_text("""
+            [data-ops-config]
+            type = "xyz_unknown"
+            key = "val"
+        """)
+    
+        utils = TomlUtilities(str(tmp_path), ops_type="all")
+        yaml_output = utils.generate_yaml_config()
+        assert "xyz_unknown" in yaml_output
+
     def test_given_a_toml_file_with_no_data_ops_config_section_when_parse_data_ops_config_called_then_empty_list_returned(
         self,
     ):
