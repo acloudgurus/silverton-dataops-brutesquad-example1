@@ -82,7 +82,7 @@ class TestTomlUtilities(TestCase):
         self.assertIn(self.dir_with_pyproject, result)
 
     def test_parse_individual_data_ops_config_with_invalid_toml(tmp_path):
-        from toml_utilities.toml_utilities import _parse_individual_data_ops_config
+        from toml_utilities import _parse_individual_data_ops_config
     
         test_dir = tmp_path / "invalid"
         test_dir.mkdir()
@@ -92,7 +92,7 @@ class TestTomlUtilities(TestCase):
         assert result == {}
 
     def test_generate_yaml_config_with_missing_type(tmp_path):
-        from toml_utilities.toml_utilities import TomlUtilities
+        from toml_utilities import TomlUtilities
     
         test_dir = tmp_path / "proj"
         test_dir.mkdir()
@@ -106,7 +106,7 @@ class TestTomlUtilities(TestCase):
         assert "name: proj" in yaml_output
 
     def test_generate_yaml_config_with_unknown_type(tmp_path):
-        from toml_utilities.toml_utilities import TomlUtilities
+        from toml_utilities import TomlUtilities
     
         test_dir = tmp_path / "proj"
         test_dir.mkdir()
