@@ -248,7 +248,7 @@ def test_cli_directory_types(tmp_path):
     assert result.returncode == 0
     assert "toml_util_test_proj" in result.stdout
 
-ddef test_cli_terraform_yaml_config(tmp_path):
+def test_cli_terraform_yaml_config(tmp_path):
     import sys
     from pathlib import Path
 
