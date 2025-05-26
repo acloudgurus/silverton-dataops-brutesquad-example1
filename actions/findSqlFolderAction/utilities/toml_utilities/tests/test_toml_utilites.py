@@ -195,17 +195,18 @@ def test_generate_yaml_config_with_missing_type(tmp_path):
     yaml_output = utils.generate_yaml_config()
     assert "name: proj" in yaml_output
 
-def test_generate_yaml_config_with_unknown_type(tmp_path):
-    from toml_utilities import TomlUtilities
+import pytest
+from toml_utilities import TomlUtilities
 
+def test_generate_yaml_config_with_missing_type(tmp_path):
     test_dir = tmp_path / "proj"
     test_dir.mkdir()
     (test_dir / "pyproject.toml").write_text("""
         [data-ops-config]
-        type = "xyz_unknown"
-        key = "val"
+        name = "test"
     """)
 
     utils = TomlUtilities(str(tmp_path), ops_type="all")
-    yaml_output = utils.generate_yaml_config()
-    assert "xyz_unknown" in yaml_output
+    with pytest.raises(KeyError, match="type"):
+        utils.generate_yaml_config()
+
