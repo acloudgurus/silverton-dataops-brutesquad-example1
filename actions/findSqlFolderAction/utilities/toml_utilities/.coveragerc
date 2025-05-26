@@ -1,0 +1,10 @@
+[run]
+branch = True
+parallel = True
+include = toml_utilities/*
+omit =
+    tests/*
+    */__init__.py
+concurrency = multiprocessing
+dynamic_context = test_function
+include_subprocess = True
