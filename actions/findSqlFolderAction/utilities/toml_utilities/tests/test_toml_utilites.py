@@ -231,7 +231,7 @@ def test_cli_directory_types(tmp_path):
     """)
 
     # Construct path to toml_utilities.py (adjust if needed)
-    script_path = Path(__file__).parent.parent / "toml_utilities.py"
+    script_path = Path(__file__).parent.parent / "utilities" / "toml_utilities" / "toml_utilities.py"
 
     # Run CLI via subprocess to trigger main() coverage
     result = subprocess.run(
